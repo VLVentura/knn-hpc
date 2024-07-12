@@ -1,0 +1,49 @@
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  *
+
+  -abseil-*,
+  -altera-*,
+  -android-*,
+  -fuchsia-*,
+  -llvm*,
+  -zircon-*,
+
+  -bugprone-chained-comparison,
+  -clang-analyzer-core.CallAndMessag,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-no-malloc,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-type-vararg,
+  -hicpp-vararg,
+  -hicpp-no-malloc,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -modernize-use-trailing-return-type,
+  -readability-else-after-return,
+  -readability-static-accessed-through-instance,
+  -readability-avoid-const-params-in-decls,
+  -readability-identifier-length,
+
+WarningsAsErrors: ""
+HeaderFilterRegex: ""
+FormatStyle: none
+
+CheckOptions:
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: "x|y|z"
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: "x|y|z"

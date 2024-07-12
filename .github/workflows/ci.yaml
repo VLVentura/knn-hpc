@@ -1,0 +1,75 @@
+name: Automated Tests
+
+on: pull_request
+
+jobs:
+  ci:
+    name: Build and Test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        run: |
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends        \
+            software-properties-common build-essential autoconf libtool pkg-config wget tar \
+            ccache ninja-build gcovr python3 python3-pip
+
+      - name: Install LLVM
+        run: |
+          LLVM_VERSION=18
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" -s ${LLVM_VERSION} all
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends               \
+            clang-${LLVM_VERSION} clang-format-${LLVM_VERSION} clang-tidy-${LLVM_VERSION}          \
+            clang-tools-${LLVM_VERSION}
+          sudo update-alternatives --install /usr/bin/clang clang $(which clang-${LLVM_VERSION}) 100
+          sudo update-alternatives --set clang $(which clang-${LLVM_VERSION})
+          sudo update-alternatives --install /usr/bin/clang++ clang++ $(which clang++-${LLVM_VERSION}) 100
+          sudo update-alternatives --set clang++ $(which clang++-${LLVM_VERSION})
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy $(which clang-tidy-${LLVM_VERSION}) 100
+          sudo update-alternatives --set clang-tidy $(which clang-tidy-${LLVM_VERSION})
+          sudo update-alternatives --install /usr/bin/clang-format clang-format $(which clang-format-${LLVM_VERSION}) 100
+          sudo update-alternatives --set clang-format $(which clang-format-${LLVM_VERSION})
+
+      - name: Install Cppcheck
+        run: |
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends libpcre2-dev libpcre3-dev
+          wget https://github.com/danmar/cppcheck/archive/refs/tags/2.13.0.tar.gz
+          tar -xvf 2.13.0.tar.gz
+          cd cppcheck-2.13.0
+          cmake -S . -B build/ -G Ninja -DCMAKE_BUILD_TYPE=Release -DHAVE_RULES=ON -DUSE_MATCHCOMPILER=ON -DBUILD_TESTS=OFF -DUSE_THREADS=ON
+          cmake --build build/ --config Release --target all -j $(nproc)
+          sudo cmake --install build/ --config Release --verbose
+
+      - name: Install CMake
+        run: |
+          sudo bash -c "$(wget -O - https://apt.kitware.com/kitware-archive.sh)"
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends cmake
+
+      - name: Configure cache
+        id: configure-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ccache
+          key: knn-hpc-cache
+
+      - name: Configure ccache
+        run: |
+          ccache --max-size=2G --set-config=compression=true --set-config=compression_level=5
+
+      - name: Build
+        id: build
+        run: |
+          cmake -S . -B build/ -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build/ --config Debug --target all -j $(nproc)
+
+      - name: Run tests
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest -T test -C Debug -j $(nproc)

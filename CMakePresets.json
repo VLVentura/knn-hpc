@@ -1,0 +1,158 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "gcc-release",
+            "displayName": "GCC - Release",
+            "description": "Setup for GCC as Release Build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_BUILD_TYPE": "Release",
+                "ENABLE_TESTING": "ON"
+            }
+        },
+        {
+            "name": "gcc-debug",
+            "displayName": "GCC - Debug",
+            "description": "Setup for GCC as Debug Build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_DEVELOPER_MODE": "ON",
+                "ENABLE_TESTING": "ON"
+            }
+        },
+        {
+            "name": "gcc-debug_with_thread_sanitizer",
+            "inherits": "gcc-debug",
+            "displayName": "GCC - Debug with Thread Sanitizer",
+            "description": "Setup for GCC as Debug Build and Thread Sanitizer Enabled",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "ENABLE_SANITIZER_THREAD": "ON",
+                "ENABLE_SANITIZER_ADDRESS": "OFF",
+                "ENABLE_SANITIZER_LEAK": "OFF"
+            }
+        },
+        {
+            "name": "clang-release",
+            "displayName": "Clang - Release",
+            "description": "Setup for Clang as Release Build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_BUILD_TYPE": "Release",
+                "ENABLE_TESTING": "ON"
+            }
+        },
+        {
+            "name": "clang-debug",
+            "displayName": "Clang - Debug",
+            "description": "Setup for Clang as Debug Build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_DEVELOPER_MODE": "ON",
+                "ENABLE_SANITIZER_MEMORY": "OFF",
+                "ENABLE_TESTING": "ON"
+            }
+        },
+        {
+            "name": "clang-debug_with_memory_sanitizer",
+            "inherits": "clang-debug",
+            "displayName": "Clang - Debug with Memory Sanitizer",
+            "description": "Setup for Clang as Debug Build and Memory Sanitizer Enabled",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "ENABLE_SANITIZER_ADDRESS": "OFF",
+                "ENABLE_SANITIZER_LEAK": "OFF"
+            }
+        },
+        {
+            "name": "clang-debug_with_thread_sanitizer",
+            "inherits": "clang-debug_with_memory_sanitizer",
+            "displayName": "Clang - Debug with Thread Sanitizer",
+            "description": "Setup for Clang as Debug Build and Thread Sanitizer Enabled",
+            "binaryDir": "${sourceDir}/build/",
+            "cacheVariables": {
+                "ENABLE_SANITIZER_THREAD": "ON",
+                "ENABLE_SANITIZER_MEMORY": "OFF"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "gcc-release-build",
+            "displayName": "GCC - Release Build",
+            "description": "Build for production",
+            "configurePreset": "gcc-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "gcc-debug-build",
+            "displayName": "GCC - Debug Build",
+            "description": "Build for debug mode",
+            "configurePreset": "gcc-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-release-build",
+            "displayName": "Clang - Release build",
+            "description": "Build for production",
+            "configurePreset": "clang-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "clang-debug-build",
+            "displayName": "Clang - Debug build",
+            "description": "Build for debug mode",
+            "configurePreset": "clang-debug",
+            "configuration": "Debug"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-default",
+            "description": "Default config for all tests",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true,
+                "labelSummary": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "test-gcc-debug",
+            "displayName": "Test GCC - Debug",
+            "description": "Test with GCC Debug Configuration",
+            "inherits": "test-default",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "test-clang-debug",
+            "displayName": "Test Clang - Debug",
+            "description": "Test with Clang Debug Configuration",
+            "inherits": "test-default",
+            "configurePreset": "clang-debug"
+        }
+    ]
+}

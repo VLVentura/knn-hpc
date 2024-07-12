@@ -1,0 +1,8 @@
+Language: Cpp
+BasedOnStyle: Google
+ColumnLimit: 120
+TabWidth: 2
+IndentWidth: 2
+Standard: c++17
+
+AccessModifierOffset: -2
