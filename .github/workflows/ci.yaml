@@ -34,6 +34,12 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang-format clang-format $(which clang-format-${LLVM_VERSION}) 100
           sudo update-alternatives --set clang-format $(which clang-format-${LLVM_VERSION})
 
+      - name: Install CMake
+        run: |
+          sudo bash -c "$(wget -O - https://apt.kitware.com/kitware-archive.sh)"
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends cmake
+
       - name: Install Cppcheck
         run: |
           sudo apt update
@@ -45,31 +51,28 @@ jobs:
           cmake --build build/ --config Release --target all -j $(nproc)
           sudo cmake --install build/ --config Release --verbose
 
-      - name: Install CMake
+      - name: Configure ccache
         run: |
-          sudo bash -c "$(wget -O - https://apt.kitware.com/kitware-archive.sh)"
-          sudo apt update
-          DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends cmake
+          ccache --max-size=2G --set-config=compression=true --set-config=compression_level=5
 
       - name: Configure cache
-        id: configure-cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.ccache
           key: knn-hpc-cache
 
-      - name: Configure ccache
-        run: |
-          ccache --max-size=2G --set-config=compression=true --set-config=compression_level=5
-
       - name: Build
-        id: build
         run: |
-          cmake -S . -B build/ -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build/ -G Ninja -DCMAKE_C_COMPILER=clang      \
+                                        -DCMAKE_CXX_COMPILER=clang++  \
+                                        -DCMAKE_BUILD_TYPE=Debug      \
+                                        -DENABLE_SANITIZER_MEMORY=OFF \
+                                        -DENABLE_DEVELOPER_MODE=ON    \
+                                        -DENABLE_TESTING=ON
           cmake --build build/ --config Debug --target all -j $(nproc)
 
       - name: Run tests
-        working-directory: ${{runner.workspace}}/build
+        working-directory: build
         run: |
           ctest -T test -C Debug -j $(nproc)
