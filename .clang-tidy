@@ -1,7 +1,7 @@
 Checks: >
   clang-diagnostic-*,
   clang-analyzer-*,
-  *
+  *,
 
   -abseil-*,
   -altera-*,
@@ -11,16 +11,21 @@ Checks: >
   -zircon-*,
 
   -bugprone-chained-comparison,
+  -bugprone-easily-swappable-parameters,
   -clang-analyzer-core.CallAndMessag,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-no-malloc,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-pro-type-union-access,
   -hicpp-vararg,
   -hicpp-no-malloc,
+  -hicpp-avoid-c-arrays,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
   -readability-else-after-return,
   -readability-static-accessed-through-instance,
   -readability-avoid-const-params-in-decls,
@@ -43,6 +48,18 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
+  - key: readability-identifier-naming.LocalVariableCase
+    value: camelBack
+  - key: readability-identifier-naming.PublicMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: "_"
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: "_"
   - key: readability-identifier-length.IgnoredVariableNames
     value: "x|y|z"
   - key: readability-identifier-length.IgnoredParameterNames

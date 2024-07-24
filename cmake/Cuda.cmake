@@ -10,12 +10,7 @@
 macro(target_link_cuda target)
   # optional named CUDA_WARNINGS
   set(oneValueArgs CUDA_WARNINGS)
-  cmake_parse_arguments(
-    _cuda_args
-    ""
-    "${oneValueArgs}"
-    ""
-    ${ARGN})
+  cmake_parse_arguments(_cuda_args "" "${oneValueArgs}" "" ${ARGN})
 
   # add CUDA to cmake language
   enable_language(CUDA)

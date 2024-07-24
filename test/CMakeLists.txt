@@ -20,8 +20,7 @@ endif()
 include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 
 add_executable(tests tests.cpp)
-target_link_libraries(tests PRIVATE knn::warnings knn::options
-                                    Catch2::Catch2WithMain)
+target_link_libraries(tests PRIVATE knn::warnings knn::options Catch2::Catch2WithMain)
 
 # automatically discover tests that are defined in catch based test files you
 # can modify the unittests. Set TEST_PREFIX to whatever you want, or use
@@ -37,4 +36,5 @@ catch_discover_tests(
   OUTPUT_PREFIX
   "unittests."
   OUTPUT_SUFFIX
-  .xml)
+  .xml
+)

@@ -4,15 +4,13 @@ include(CMakeDependentOption)
 include(CheckCXXCompilerFlag)
 
 macro(supports_sanitizers)
-  if((CMAKE_CXX_COMPILER_ID MATCHES ".*Clang.*" OR CMAKE_CXX_COMPILER_ID MATCHES
-                                                   ".*GNU.*") AND NOT WIN32)
+  if((CMAKE_CXX_COMPILER_ID MATCHES ".*Clang.*" OR CMAKE_CXX_COMPILER_ID MATCHES ".*GNU.*") AND NOT WIN32)
     set(SUPPORTS_UBSAN ON)
   else()
     set(SUPPORTS_UBSAN OFF)
   endif()
 
-  if((CMAKE_CXX_COMPILER_ID MATCHES ".*Clang.*" OR CMAKE_CXX_COMPILER_ID MATCHES
-                                                   ".*GNU.*") AND WIN32)
+  if((CMAKE_CXX_COMPILER_ID MATCHES ".*Clang.*" OR CMAKE_CXX_COMPILER_ID MATCHES ".*GNU.*") AND WIN32)
     set(SUPPORTS_ASAN OFF)
   else()
     set(SUPPORTS_ASAN ON)
@@ -23,9 +21,8 @@ macro(setup_options)
   option(ENABLE_HARDENING "Enable hardening" ON)
   option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
   cmake_dependent_option(
-    ENABLE_GLOBAL_HARDENING
-    "Attempt to push hardening options to built dependencies" ON
-    ENABLE_HARDENING OFF)
+    ENABLE_GLOBAL_HARDENING "Attempt to push hardening options to built dependencies" ON ENABLE_HARDENING OFF
+  )
 
   supports_sanitizers()
 
@@ -35,8 +32,7 @@ macro(setup_options)
     option(ENABLE_USER_LINKER "Enable user-selected linker" OFF)
     option(ENABLE_SANITIZER_ADDRESS "Enable address sanitizer" ${SUPPORTS_ASAN})
     option(ENABLE_SANITIZER_LEAK "Enable leak sanitizer" ON)
-    option(ENABLE_SANITIZER_UNDEFINED "Enable undefined sanitizer"
-           ${SUPPORTS_UBSAN})
+    option(ENABLE_SANITIZER_UNDEFINED "Enable undefined sanitizer" ${SUPPORTS_UBSAN})
     option(ENABLE_SANITIZER_THREAD "Enable thread sanitizer" OFF)
     option(ENABLE_SANITIZER_MEMORY "Enable memory sanitizer" ON)
     option(ENABLE_UNITY_BUILD "Enable unity builds" OFF)
@@ -75,14 +71,16 @@ macro(setup_options)
       ENABLE_CPPCHECK
       ENABLE_COVERAGE
       ENABLE_PCH
-      ENABLE_CACHE)
+      ENABLE_CACHE
+    )
   endif()
 
   check_libfuzzer_support(LIBFUZZER_SUPPORTED)
   if(LIBFUZZER_SUPPORTED
      AND (ENABLE_SANITIZER_ADDRESS
           OR ENABLE_SANITIZER_THREAD
-          OR ENABLE_SANITIZER_UNDEFINED))
+          OR ENABLE_SANITIZER_UNDEFINED)
+  )
     set(DEFAULT_FUZZER ON)
   else()
     set(DEFAULT_FUZZER OFF)
@@ -106,14 +104,13 @@ macro(global_options)
        OR ENABLE_SANITIZER_UNDEFINED
        OR ENABLE_SANITIZER_ADDRESS
        OR ENABLE_SANITIZER_THREAD
-       OR ENABLE_SANITIZER_LEAK)
+       OR ENABLE_SANITIZER_LEAK
+    )
       set(ENABLE_UBSAN_MINIMAL_RUNTIME FALSE)
     else()
       set(ENABLE_UBSAN_MINIMAL_RUNTIME TRUE)
     endif()
-    message(
-      "${ENABLE_HARDENING} ${ENABLE_UBSAN_MINIMAL_RUNTIME} ${ENABLE_SANITIZER_UNDEFINED}"
-    )
+    message("${ENABLE_HARDENING} ${ENABLE_UBSAN_MINIMAL_RUNTIME} ${ENABLE_SANITIZER_UNDEFINED}")
     enable_hardening(options ON ${ENABLE_UBSAN_MINIMAL_RUNTIME})
   endif()
 endmacro()
@@ -136,9 +133,9 @@ macro(local_options)
 
   include(cmake/Sanitizers.cmake)
   enable_sanitizers(
-    options ${ENABLE_SANITIZER_ADDRESS} ${ENABLE_SANITIZER_LEAK}
-    ${ENABLE_SANITIZER_UNDEFINED} ${ENABLE_SANITIZER_THREAD}
-    ${ENABLE_SANITIZER_MEMORY})
+    options ${ENABLE_SANITIZER_ADDRESS} ${ENABLE_SANITIZER_LEAK} ${ENABLE_SANITIZER_UNDEFINED}
+    ${ENABLE_SANITIZER_THREAD} ${ENABLE_SANITIZER_MEMORY}
+  )
 
   set_target_properties(options PROPERTIES UNITY_BUILD ${ENABLE_UNITY_BUILD})
 
@@ -180,7 +177,8 @@ macro(local_options)
        OR ENABLE_SANITIZER_UNDEFINED
        OR ENABLE_SANITIZER_ADDRESS
        OR ENABLE_SANITIZER_THREAD
-       OR ENABLE_SANITIZER_LEAK)
+       OR ENABLE_SANITIZER_LEAK
+    )
       set(ENABLE_UBSAN_MINIMAL_RUNTIME FALSE)
     else()
       set(ENABLE_UBSAN_MINIMAL_RUNTIME TRUE)

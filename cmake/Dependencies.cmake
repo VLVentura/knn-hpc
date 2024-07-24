@@ -4,28 +4,27 @@ include(cmake/CPM.cmake)
 # propagate out to other targets
 function(setup_dependencies)
 
-  if(NOT TARGET fmtlib::fmtlib)
-    cpmaddpackage("gh:fmtlib/fmt#11.0.1")
+  CPMAddPackage("gh:fmtlib/fmt#11.0.1")
+
+  CPMAddPackage(
+    NAME spdlog
+    VERSION 1.14.0
+    GITHUB_REPOSITORY "gabime/spdlog"
+    OPTIONS "SPDLOG_FMT_EXTERNAL ON"
+  )
+
+  CPMAddPackage(
+    NAME Eigen
+    VERSION 3.4
+    URL https://gitlab.com/libeigen/eigen/-/archive/3.4/eigen-3.4.tar.gz
+    # Eigen's CMakelists are not intended for library use
+    DOWNLOAD_ONLY YES
+  )
+  if(Eigen_ADDED)
+    add_library(Eigen INTERFACE IMPORTED)
+    target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
   endif()
 
-  if(NOT TARGET spdlog::spdlog)
-    cpmaddpackage(
-      NAME
-      spdlog
-      VERSION
-      1.14.0
-      GITHUB_REPOSITORY
-      "gabime/spdlog"
-      OPTIONS
-      "SPDLOG_FMT_EXTERNAL ON")
-  endif()
-
-  if(NOT TARGET Catch2::Catch2WithMain)
-    cpmaddpackage("gh:catchorg/Catch2@3.3.2")
-  endif()
-
-  if(NOT TARGET CLI11::CLI11)
-    cpmaddpackage("gh:CLIUtils/CLI11@2.3.2")
-  endif()
+  CPMAddPackage("gh:catchorg/Catch2@3.3.2")
 
 endfunction()

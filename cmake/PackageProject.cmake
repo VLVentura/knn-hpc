@@ -16,7 +16,8 @@ function(package_project)
       # default to ${CMAKE_BINARY_DIR}
       CONFIG_EXPORT_DESTINATION
       # default to ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/${NAME} suitable for vcpkg, etc.
-      CONFIG_INSTALL_DESTINATION)
+      CONFIG_INSTALL_DESTINATION
+  )
   set(_multiValueArgs
       # recursively found for the current folder if not specified
       TARGETS
@@ -30,14 +31,10 @@ function(package_project)
       # the names of the PRIVATE dependencies that are found using `CONFIG`. Only included when BUILD_SHARED_LIBS is OFF.
       PRIVATE_DEPENDENCIES_CONFIGURED
       # PRIVATE dependencies that are only included when BUILD_SHARED_LIBS is OFF
-      PRIVATE_DEPENDENCIES)
+      PRIVATE_DEPENDENCIES
+  )
 
-  cmake_parse_arguments(
-    _PackageProject
-    "${_options}"
-    "${_oneValueArgs}"
-    "${_multiValueArgs}"
-    "${ARGN}")
+  cmake_parse_arguments(_PackageProject "${_options}" "${_oneValueArgs}" "${_multiValueArgs}" "${ARGN}")
 
   # Set default options
   include(GNUInstallDirs) # Define GNU standard installation directories such as CMAKE_INSTALL_DATADIR
@@ -81,10 +78,7 @@ function(package_project)
   set(_PackageProject_INSTALL_DESTINATION "${_PackageProject_CONFIG_INSTALL_DESTINATION}")
 
   # Installation of the public/interface includes
-  if(NOT
-     "${_PackageProject_PUBLIC_INCLUDES}"
-     STREQUAL
-     "")
+  if(NOT "${_PackageProject_PUBLIC_INCLUDES}" STREQUAL "")
     foreach(_INC ${_PackageProject_PUBLIC_INCLUDES})
       # make include absolute
       if(NOT IS_ABSOLUTE ${_INC})
@@ -101,10 +95,7 @@ function(package_project)
   endif()
 
   # Append the configured public dependencies
-  if(NOT
-     "${_PackageProject_PUBLIC_DEPENDENCIES_CONFIGURED}"
-     STREQUAL
-     "")
+  if(NOT "${_PackageProject_PUBLIC_DEPENDENCIES_CONFIGURED}" STREQUAL "")
     set(_PUBLIC_DEPENDENCIES_CONFIG)
     foreach(DEP ${_PackageProject_PUBLIC_DEPENDENCIES_CONFIGURED})
       list(APPEND _PUBLIC_DEPENDENCIES_CONFIG "${DEP} CONFIG")
@@ -115,10 +106,7 @@ function(package_project)
   set(_PackageProject_DEPENDENCIES ${_PackageProject_PUBLIC_DEPENDENCIES})
 
   # Append the configured private dependencies
-  if(NOT
-     "${_PackageProject_PRIVATE_DEPENDENCIES_CONFIGURED}"
-     STREQUAL
-     "")
+  if(NOT "${_PackageProject_PRIVATE_DEPENDENCIES_CONFIGURED}" STREQUAL "")
     set(_PRIVATE_DEPENDENCIES_CONFIG)
     foreach(DEP ${_PackageProject_PRIVATE_DEPENDENCIES_CONFIGURED})
       list(APPEND _PRIVATE_DEPENDENCIES_CONFIG "${DEP} CONFIG")
@@ -134,7 +122,8 @@ function(package_project)
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT shlib
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT bin
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${_PackageProject_NAME}" COMPONENT dev)
+    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${_PackageProject_NAME}" COMPONENT dev
+  )
 
   # install the usage file
   set(_targets_str "")
@@ -146,18 +135,21 @@ function(package_project)
 
     find_package(${_PackageProject_NAME} CONFIG REQUIRED)
     target_link_libraries(main PRIVATE ${_targets_str})
-  ")
+  "
+  )
   install(CODE "MESSAGE(STATUS \"${USAGE_FILE_CONTENT}\")")
   file(WRITE "${_PackageProject_EXPORT_DESTINATION}/usage" "${USAGE_FILE_CONTENT}")
   install(FILES "${_PackageProject_EXPORT_DESTINATION}/usage"
-          DESTINATION "${_PackageProject_CONFIG_INSTALL_DESTINATION}")
+          DESTINATION "${_PackageProject_CONFIG_INSTALL_DESTINATION}"
+  )
 
   unset(_PackageProject_TARGETS)
 
   # download ForwardArguments
   FetchContent_Declare(
     _fargs
-    URL https://github.com/polysquare/cmake-forward-arguments/archive/8c50d1f956172edb34e95efa52a2d5cb1f686ed2.zip)
+    URL https://github.com/polysquare/cmake-forward-arguments/archive/8c50d1f956172edb34e95efa52a2d5cb1f686ed2.zip
+  )
   FetchContent_GetProperties(_fargs)
   if(NOT _fargs_POPULATED)
     FetchContent_Populate(_fargs)
@@ -174,7 +166,8 @@ function(package_project)
     SINGLEVAR_ARGS
     "${_oneValueArgs};EXPORT_DESTINATION;INSTALL_DESTINATION;NAMESPACE;VARS_PREFIX;EXPORT"
     MULTIVAR_ARGS
-    "${_multiValueArgs};DEPENDENCIES;PRIVATE_DEPENDENCIES")
+    "${_multiValueArgs};DEPENDENCIES;PRIVATE_DEPENDENCIES"
+  )
 
   # download ycm
   FetchContent_Declare(_ycm URL https://github.com/robotology/ycm/archive/refs/tags/v0.13.0.zip)

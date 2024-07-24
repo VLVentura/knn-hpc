@@ -1,12 +1,7 @@
 # Include a system directory (which suppresses its warnings).
 function(target_include_system_directories target)
   set(multiValueArgs INTERFACE PUBLIC PRIVATE)
-  cmake_parse_arguments(
-    ARG
-    ""
-    ""
-    "${multiValueArgs}"
-    ${ARGN})
+  cmake_parse_arguments(ARG "" "" "${multiValueArgs}" ${ARGN})
 
   foreach(scope IN ITEMS INTERFACE PUBLIC PRIVATE)
     foreach(lib_include_dirs IN LISTS ARG_${scope})
@@ -18,17 +13,11 @@ function(target_include_system_directories target)
       endif()
       if(${scope} STREQUAL "INTERFACE" OR ${scope} STREQUAL "PUBLIC")
         target_include_directories(
-          ${target}
-          ${_SYSTEM}
-          ${scope}
-          "$<BUILD_INTERFACE:${lib_include_dirs}>"
-          "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+          ${target} ${_SYSTEM} ${scope} "$<BUILD_INTERFACE:${lib_include_dirs}>"
+          "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        )
       else()
-        target_include_directories(
-          ${target}
-          ${_SYSTEM}
-          ${scope}
-          ${lib_include_dirs})
+        target_include_directories(${target} ${_SYSTEM} ${scope} ${lib_include_dirs})
       endif()
     endforeach()
   endforeach()
@@ -36,11 +25,7 @@ function(target_include_system_directories target)
 endfunction()
 
 # Include the directories of a library target as system directories (which suppresses their warnings).
-function(
-  target_include_system_library
-  target
-  scope
-  lib)
+function(target_include_system_library target scope lib)
   # check if this is a target
   if(TARGET ${lib})
     get_target_property(lib_include_dirs ${lib} INTERFACE_INCLUDE_DIRECTORIES)
@@ -53,11 +38,7 @@ function(
 endfunction()
 
 # Link a library target as a system library (which suppresses its warnings).
-function(
-  target_link_system_library
-  target
-  scope
-  lib)
+function(target_link_system_library target scope lib)
   # Include the directories in the library
   target_include_system_library(${target} ${scope} ${lib})
 
@@ -68,12 +49,7 @@ endfunction()
 # Link multiple library targets as system libraries (which suppresses their warnings).
 function(target_link_system_libraries target)
   set(multiValueArgs INTERFACE PUBLIC PRIVATE)
-  cmake_parse_arguments(
-    ARG
-    ""
-    ""
-    "${multiValueArgs}"
-    ${ARGN})
+  cmake_parse_arguments(ARG "" "" "${multiValueArgs}" ${ARGN})
 
   foreach(scope IN ITEMS INTERFACE PUBLIC PRIVATE)
     foreach(lib IN LISTS ARG_${scope})
