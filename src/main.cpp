@@ -1,8 +1,11 @@
 #include <fmt/base.h>
+#include <fmt/format.h>
 
+#include <CLI/CLI.hpp>
 #include <Eigen/Core>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -76,15 +79,36 @@ std::vector<int> LoadTarget(const std::string &filename) {
   return data;
 }
 
-int main() {
-  const auto &xTrain = LoadFeatures("resources/iris_dataset/X_train.csv");
-  const auto &yTtrain = LoadTarget("resources/iris_dataset/Y_train.csv");
-  const auto &x = LoadFeatures("resources/iris_dataset/X_test.csv");
-  const auto &y = LoadTarget("resources/iris_dataset/Y_test.csv");
+// NOLINTNEXTLINE(bugprone-exception-escape)
+int main(int argc, char **argv) {
+  CLI::App app{"KNN Algorithm implemented with HPC techniques."};
+  argv = app.ensure_utf8(argv);
+
+  std::string dataset{"resources/iris_dataset"};
+  app.add_option("-d,--dataset", dataset)->required(true)->check(CLI::ExistingPath);
+
+  int K{3};                                                        // NOLINT
+  app.add_option("-k,--neighbors", K)->check(CLI::Range(3, 100));  // NOLINT
+
+  DistanceType distance{DistanceType::kEuclidian};
+  const std::map<std::string, DistanceType> map{{"euclidian", DistanceType::kEuclidian},
+                                                {"e", DistanceType::kEuclidian},
+                                                {"manhattan", DistanceType::kManhattan},
+                                                {"m", DistanceType::kManhattan}};
+  app.add_option("-f,--distance", distance)
+      ->check(CLI::IsMember({"euclidian", "e", "manhattan", "m"}, CLI::ignore_case))
+      ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
+
+  CLI11_PARSE(app, argc, argv);
+
+  const auto &xTrain = LoadFeatures(fmt::format("{}/X_train.csv", dataset));
+  const auto &yTtrain = LoadTarget(fmt::format("{}/Y_train.csv", dataset));
+  const auto &x = LoadFeatures(fmt::format("{}/X_test.csv", dataset));
+  const auto &y = LoadTarget(fmt::format("{}/Y_test.csv", dataset));
 
   KNeighborsClassifierCreateConfig config{};
-  config.K = 5;  // NOLINT
-  config.distanceType = DistanceType::kEuclidian;
+  config.K = K;  // NOLINT
+  config.distanceType = distance;
 
   KNeighborsClassifier knn{config};
   knn.Fit(xTrain, yTtrain);
