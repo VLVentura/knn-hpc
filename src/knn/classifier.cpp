@@ -5,9 +5,10 @@
 #include <Eigen/Core>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
+#include <iostream>
 #include <map>
-#include <queue>
 #include <vector>
 
 #include "core/distance.h"
@@ -35,10 +36,11 @@ std::vector<int> KNeighborsClassifier::Predict(const Eigen::MatrixXf &predict) {
     std::map<int, int> labels;
 
     for (int i = 0; i < K_; ++i) {
-      const auto &n = neighbors.top();
-      const int &label = y_[static_cast<size_t>(n.index)];
+      Eigen::Index idx{};
+      neighbors.minCoeff(&idx);
+      const int &label = y_[static_cast<size_t>(idx)];
       ++labels[label];
-      neighbors.pop();
+      neighbors(idx) = Eigen::Infinity;
     }
 
     const auto &mostVoted =
@@ -49,7 +51,7 @@ std::vector<int> KNeighborsClassifier::Predict(const Eigen::MatrixXf &predict) {
   return predictions;
 }
 
-std::priority_queue<DistanceIndex> KNeighborsClassifier::FindNeighbors(const Eigen::RowVectorXf &point) {
+Eigen::VectorXf KNeighborsClassifier::FindNeighbors(const Eigen::RowVectorXf &point) {
   const auto distance = [&]() {
     switch (distanceType_) {
       case kEuclidian:
@@ -59,11 +61,8 @@ std::priority_queue<DistanceIndex> KNeighborsClassifier::FindNeighbors(const Eig
     }
   }();
 
-  std::priority_queue<DistanceIndex> distances;
-  for (Eigen::Index i = 0; i < x_.rows(); ++i) {
-    const float &d = distance(point, x_.row(i));
-    distances.emplace(-d, i);
-  }
+  static int j{1};
+  std::cout << "[" << j++ << "] Calculating distances from point " << point << '\n';
 
-  return distances;
+  return distance(point, x_);
 }

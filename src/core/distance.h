@@ -10,8 +10,8 @@ enum DistanceType {
 
 class Distance {
 public:
-  static float Euclidian(const Eigen::RowVectorXf &a, const Eigen::RowVectorXf &b);
-  static float Manhattan(const Eigen::RowVectorXf &a, const Eigen::RowVectorXf &b);
+  static Eigen::VectorXf Euclidian(const Eigen::RowVectorXf &a, const Eigen::MatrixXf &b);
+  static Eigen::VectorXf Manhattan(const Eigen::RowVectorXf &a, const Eigen::MatrixXf &b);
 };
 
 #endif  // CORE_DISTANCE_H
