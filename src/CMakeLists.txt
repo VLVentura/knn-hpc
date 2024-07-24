@@ -6,4 +6,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE options warnings)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<CONFIG:Debug>:DEBUG> $<$<CONFIG:Release>:NDEBUG>)
 
-target_link_system_libraries(${PROJECT_NAME} PRIVATE fmt::fmt spdlog::spdlog)
+target_link_system_libraries(${PROJECT_NAME} PRIVATE fmt::fmt spdlog::spdlog Eigen)
+
+add_custom_command(
+  TARGET ${PROJECT_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}/resources
+)
+set_property(DIRECTORY PROPERTY ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/resources)
