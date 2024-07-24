@@ -1,5 +1,6 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <spdlog/stopwatch.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Core>
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
   argv = app.ensure_utf8(argv);
 
   std::string dataset{"resources/iris_dataset"};
-  app.add_option("-d,--dataset", dataset)->required(true)->check(CLI::ExistingPath);
+  app.add_option("-d,--dataset", dataset)->check(CLI::ExistingPath);
 
   int K{3};                                                        // NOLINT
   app.add_option("-k,--neighbors", K)->check(CLI::Range(3, 100));  // NOLINT
@@ -110,9 +111,11 @@ int main(int argc, char **argv) {
   config.K = K;  // NOLINT
   config.distanceType = distance;
 
+  const spdlog::stopwatch sw;
   KNeighborsClassifier knn{config};
   knn.Fit(xTrain, yTtrain);
   const auto &predict = knn.Predict(x);
+  const auto &elapsed = sw.elapsed();
 
   size_t right{0};
   for (size_t i = 0; i < predict.size(); ++i) {
@@ -120,7 +123,7 @@ int main(int argc, char **argv) {
   }
 
   const float acc = static_cast<float>(right) / static_cast<float>(predict.size());
-  fmt::println("Accuracy: {:.2f}%", acc * 100.F);  // NOLINT
+  fmt::println("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
 
   return EXIT_SUCCESS;
 }
