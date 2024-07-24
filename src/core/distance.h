@@ -1,8 +1,7 @@
 #ifndef CORE_DISTANCE_H
 #define CORE_DISTANCE_H
 
-#include "core/vec4.h"
-// #include "vec2.h"
+#include <Eigen/Core>
 
 enum DistanceType {
   kEuclidian,
@@ -11,10 +10,8 @@ enum DistanceType {
 
 class Distance {
 public:
-  // static float Euclidian(const Vec2 &a, const Vec2 &b);
-  // static float Manhattan(const Vec2 &a, const Vec2 &b);
-  static float Euclidian(const Vec4 &a, const Vec4 &b);
-  static float Manhattan(const Vec4 &a, const Vec4 &b);
+  static float Euclidian(const Eigen::RowVectorXf &a, const Eigen::RowVectorXf &b);
+  static float Manhattan(const Eigen::RowVectorXf &a, const Eigen::RowVectorXf &b);
 };
 
 #endif  // CORE_DISTANCE_H

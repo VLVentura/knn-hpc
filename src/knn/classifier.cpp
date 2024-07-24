@@ -2,6 +2,7 @@
 
 #include <fmt/base.h>
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -10,25 +11,24 @@
 #include <vector>
 
 #include "core/distance.h"
-#include "core/vec4.h"
 
 KNeighborsClassifier::KNeighborsClassifier(const KNeighborsClassifierCreateConfig &config)
     : K_{config.K}, distanceType_{config.distanceType} {}
 
 KNeighborsClassifier::KNeighborsClassifier() : KNeighborsClassifier(KNeighborsClassifierCreateConfig{}) {}
 
-void KNeighborsClassifier::Fit(const std::vector<Vec4> &x, const std::vector<int> &y) {
-  assert(x.size() == y.size());
+void KNeighborsClassifier::Fit(const Eigen::MatrixXf &x, const std::vector<int> &y) {
+  assert(static_cast<size_t>(x.rows()) == y.size());
 
   x_ = x;
   y_ = y;
 }
 
-std::vector<int> KNeighborsClassifier::Predict(const std::vector<Vec4> &predict) {
+std::vector<int> KNeighborsClassifier::Predict(const Eigen::MatrixXf &predict) {
   std::vector<int> predictions;
-  predictions.reserve(predict.size());
+  predictions.reserve(static_cast<size_t>(predict.rows()));
 
-  for (const Vec4 &point : predict) {
+  for (const auto &point : predict.rowwise()) {
     auto &&neighbors = FindNeighbors(point);
 
     // Label -> Frequency
@@ -38,7 +38,6 @@ std::vector<int> KNeighborsClassifier::Predict(const std::vector<Vec4> &predict)
       const auto &n = neighbors.top();
       const int &label = y_[static_cast<size_t>(n.index)];
       ++labels[label];
-      fmt::println("d: {} | i: {} | label: {} | freq: {}", n.distance, n.index, label, labels[label]);
       neighbors.pop();
     }
 
@@ -50,7 +49,7 @@ std::vector<int> KNeighborsClassifier::Predict(const std::vector<Vec4> &predict)
   return predictions;
 }
 
-std::priority_queue<DistanceIndex> KNeighborsClassifier::FindNeighbors(const Vec4 &point) {
+std::priority_queue<DistanceIndex> KNeighborsClassifier::FindNeighbors(const Eigen::RowVectorXf &point) {
   const auto distance = [&]() {
     switch (distanceType_) {
       case kEuclidian:
@@ -61,14 +60,10 @@ std::priority_queue<DistanceIndex> KNeighborsClassifier::FindNeighbors(const Vec
   }();
 
   std::priority_queue<DistanceIndex> distances;
-  fmt::println("distances from {}: [ ", point);
-  for (size_t i = 0; i < x_.size(); ++i) {  // NOLINT
-    const Vec4 &p = x_.at(i);
-    const float &d = distance(point, p);
-    fmt::println("\t{}: {}, ", p, d);
+  for (Eigen::Index i = 0; i < x_.rows(); ++i) {
+    const float &d = distance(point, x_.row(i));
     distances.emplace(-d, i);
   }
-  fmt::println(" ] | top: {}", distances.top().distance);
 
   return distances;
 }

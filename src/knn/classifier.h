@@ -1,11 +1,11 @@
 #ifndef KNN_CLASSIFIER_H
 #define KNN_CLASSIFIER_H
 
+#include <Eigen/Core>
 #include <queue>
 #include <vector>
 
 #include "core/distance.h"
-#include "core/vec4.h"
 
 struct KNeighborsClassifierCreateConfig {
   int K{3};  // NOLINT
@@ -25,15 +25,15 @@ public:
   explicit KNeighborsClassifier(const KNeighborsClassifierCreateConfig &config);
   KNeighborsClassifier();
 
-  void Fit(const std::vector<Vec4> &x, const std::vector<int> &y);
-  std::vector<int> Predict(const std::vector<Vec4> &predict);
+  void Fit(const Eigen::MatrixXf &x, const std::vector<int> &y);
+  std::vector<int> Predict(const Eigen::MatrixXf &predict);
 
 private:
-  std::priority_queue<DistanceIndex> FindNeighbors(const Vec4 &point);
+  std::priority_queue<DistanceIndex> FindNeighbors(const Eigen::RowVectorXf &point);
 
   int K_;  // NOLINT
   DistanceType distanceType_;
-  std::vector<Vec4> x_;
+  Eigen::MatrixXf x_;
   std::vector<int> y_;
 };
 

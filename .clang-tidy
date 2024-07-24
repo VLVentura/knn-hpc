@@ -22,6 +22,7 @@ Checks: >
   -hicpp-vararg,
   -hicpp-no-malloc,
   -hicpp-avoid-c-arrays,
+  -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   -modernize-use-trailing-return-type,
