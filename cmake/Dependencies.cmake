@@ -25,6 +25,8 @@ function(setup_dependencies)
     target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
   endif()
 
+  CPMAddPackage("gh:CLIUtils/CLI11@2.4.2")
+
   CPMAddPackage("gh:catchorg/Catch2@3.3.2")
 
 endfunction()
