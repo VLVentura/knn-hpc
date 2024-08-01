@@ -1,5 +1,6 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
 #include <CLI/CLI.hpp>
@@ -100,7 +101,17 @@ int main(int argc, char **argv) {
       ->check(CLI::IsMember({"euclidian", "e", "manhattan", "m"}, CLI::ignore_case))
       ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
 
+  int jobs{1};
+  app.add_option("-j,--jobs", jobs);
+
+  bool verbose{false};
+  app.add_flag("-v,--verbose", verbose);
+
   CLI11_PARSE(app, argc, argv);
+
+  if (verbose) {
+    setenv("ENABLE_VERBOSE", "true", 0);  // NOLINT
+  }
 
   const auto &xTrain = LoadFeatures(fmt::format("{}/X_train.csv", dataset));
   const auto &yTtrain = LoadTarget(fmt::format("{}/Y_train.csv", dataset));
@@ -110,6 +121,7 @@ int main(int argc, char **argv) {
   KNeighborsClassifierCreateConfig config{};
   config.K = K;  // NOLINT
   config.distanceType = distance;
+  config.jobs = jobs;
 
   const spdlog::stopwatch sw;
   KNeighborsClassifier knn{config};
@@ -123,7 +135,11 @@ int main(int argc, char **argv) {
   }
 
   const float acc = static_cast<float>(right) / static_cast<float>(predict.size());
-  fmt::println("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
+  if (verbose) {
+    spdlog::info("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
+  } else {
+    fmt::println("{:.2f} | {}", acc, elapsed.count());
+  }
 
   return EXIT_SUCCESS;
 }

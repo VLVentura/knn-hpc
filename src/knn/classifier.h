@@ -9,6 +9,7 @@
 struct KNeighborsClassifierCreateConfig {
   int K{3};  // NOLINT
   DistanceType distanceType{DistanceType::kEuclidian};
+  int jobs{1};
 };
 
 class KNeighborsClassifier {
@@ -23,6 +24,7 @@ private:
   Eigen::VectorXf FindNeighbors(const Eigen::RowVectorXf &point);
 
   int K_;  // NOLINT
+  int jobs_;
   DistanceType distanceType_;
   Eigen::MatrixXf x_;
   std::vector<int> y_;
