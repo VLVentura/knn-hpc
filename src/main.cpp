@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   if (verbose) {
     spdlog::info("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
   } else {
-    fmt::println("{:.2f} | {}", acc, elapsed.count());
+    fmt::println("accuracy,time\n{:.2f},{}", acc, elapsed.count());
   }
 
   return EXIT_SUCCESS;
