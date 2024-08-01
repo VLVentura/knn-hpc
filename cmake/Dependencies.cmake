@@ -13,18 +13,6 @@ function(setup_dependencies)
     OPTIONS "SPDLOG_FMT_EXTERNAL ON"
   )
 
-  CPMAddPackage(
-    NAME Eigen
-    VERSION 3.4
-    URL https://gitlab.com/libeigen/eigen/-/archive/3.4/eigen-3.4.tar.gz
-    # Eigen's CMakelists are not intended for library use
-    DOWNLOAD_ONLY YES
-  )
-  if(Eigen_ADDED)
-    add_library(Eigen INTERFACE IMPORTED)
-    target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
-  endif()
-
   CPMAddPackage("gh:CLIUtils/CLI11@2.4.2")
 
   CPMAddPackage("gh:catchorg/Catch2@3.3.2")

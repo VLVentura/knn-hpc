@@ -1,17 +1,17 @@
 #include "classifier.h"
 
 #include <fmt/base.h>
+#include <fmt/ranges.h>
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
-#include <Eigen/Core>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstdlib>
 #include <map>
+#include <queue>
 #include <vector>
 
 #include "core/distance.h"
@@ -21,19 +21,18 @@ KNeighborsClassifier::KNeighborsClassifier(const KNeighborsClassifierCreateConfi
 
 KNeighborsClassifier::KNeighborsClassifier() : KNeighborsClassifier(KNeighborsClassifierCreateConfig{}) {}
 
-void KNeighborsClassifier::Fit(const Eigen::MatrixXf &x, const std::vector<int> &y) {
-  assert(static_cast<size_t>(x.rows()) == y.size());
+void KNeighborsClassifier::Fit(const Matrix &x, const std::vector<int> &y) {
+  assert(x.size() == y.size());
 
   x_ = x;
   y_ = y;
 }
 
-std::vector<int> KNeighborsClassifier::Predict(const Eigen::MatrixXf &predict) {
-  static const char *const EnableVerbose = getenv("ENABLE_VERBOSE");            // NOLINT
-  static const Eigen::IOFormat EigenFmt(2, 0, ", ", "\n", "[", "]", "[", "]");  // NOLINT
+std::vector<int> KNeighborsClassifier::Predict(const Matrix &predict) {
+  static const char *const EnableVerbose = getenv("ENABLE_VERBOSE");  // NOLINT
 
-  std::vector<int> predictions(static_cast<size_t>(predict.rows()));
-  int64_t i{0};
+  std::vector<int> predictions(predict.size());
+  size_t i{0};
 
   omp_set_num_threads(jobs_);
 
@@ -42,37 +41,48 @@ std::vector<int> KNeighborsClassifier::Predict(const Eigen::MatrixXf &predict) {
   - Schedule dynamic: depende da carga, se houver um overhead grande em uma thread, a outra thread pode suprir.
  */
 #pragma omp parallel for schedule(static, 1) default(shared) private(i)  // NOLINT
-  for (i = 0; i < predict.rows(); ++i) {
-    const auto &point = predict.row(i);
+  for (i = 0; i < predict.size(); ++i) {
+    const auto &point = predict[i];
     auto &&neighbors = FindNeighbors(point);
 
     if (EnableVerbose != nullptr) {
-      std::stringstream ss;
-      ss << point.format(EigenFmt);
-      spdlog::info("[Thread : {}] | [{}] Calculating distances from point {}", omp_get_thread_num(), i, ss.str());
+      spdlog::info("[Thread : {}] | [{}] Calculating distances from point {}", omp_get_thread_num(), i,
+                   fmt::join(point, ","));
+    }
+
+    struct DistanceIndex {
+      DistanceIndex(float d, size_t s) : distance{d}, index{s} {}
+      [[nodiscard]] inline bool operator<(const DistanceIndex &rhs) const { return distance < rhs.distance; }
+
+      float distance;
+      size_t index;
+    };
+
+    std::priority_queue<DistanceIndex> distances;
+    for (size_t j = 0; j < neighbors.size(); ++j) {
+      distances.emplace(-neighbors[j], j);
     }
 
     // Label -> Frequency
     std::map<int, int> labels;
 
-    for (int j = 0; j < K_; ++j) {
-      Eigen::Index idx{0};
-      neighbors.minCoeff(&idx);
-      const int &label = y_[static_cast<size_t>(idx)];
+    for (size_t j = 0; j < static_cast<size_t>(K_); ++j) {
+      const auto &n = distances.top();
+      const int &label = y_[n.index];
       ++labels[label];
-      neighbors(idx) = Eigen::Infinity;
+      distances.pop();
     }
 
     const auto &mostVoted =
         *std::max_element(labels.begin(), labels.end(), [](auto l, auto r) { return l.second < r.second; });
 
-    predictions[static_cast<size_t>(i)] = mostVoted.first;
+    predictions[i] = mostVoted.first;
   }
 
   return predictions;
 }
 
-Eigen::VectorXf KNeighborsClassifier::FindNeighbors(const Eigen::RowVectorXf &point) {
+Vector KNeighborsClassifier::FindNeighbors(const Vector &point) {
   const auto distance = [&]() {
     switch (distanceType_) {
       case kEuclidian:

@@ -9,14 +9,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE options warnings)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC $<$<CONFIG:Debug>:DEBUG> $<$<CONFIG:Release>:NDEBUG>)
 
-target_link_system_libraries(
-  ${PROJECT_NAME}
-  PRIVATE
-  fmt::fmt
-  spdlog::spdlog
-  CLI11::CLI11
-  Eigen
-)
+target_link_system_libraries(${PROJECT_NAME} PRIVATE fmt::fmt spdlog::spdlog CLI11::CLI11)
 
 add_custom_command(
   TARGET ${PROJECT_NAME}

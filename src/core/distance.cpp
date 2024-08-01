@@ -1,13 +1,26 @@
 #include "distance.h"
 
-#include <Eigen/src/Core/Matrix.h>
+#include <fmt/base.h>
 
-#include <Eigen/Core>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 
-Eigen::VectorXf Distance::Euclidian(const Eigen::RowVectorXf &a, const Eigen::MatrixXf &b) {
-  return (b.rowwise() - a).rowwise().squaredNorm();
+Vector Distance::Euclidian(const Vector &a, const Matrix &b) {
+  Vector distances(b.size());
+
+  for (size_t i = 0; i < b.size(); ++i) {
+    float sum{0.0F};
+
+    const auto &row = b[i];
+    for (size_t j = 0; j < row.size(); ++j) {
+      sum += static_cast<float>(std::pow((a[j] - row[j]), 2));
+    }
+
+    distances[i] = std::sqrt(sum);
+  }
+
+  return distances;
 }
 
-Eigen::VectorXf Distance::Manhattan(const Eigen::RowVectorXf &a, const Eigen::MatrixXf &b) { return a + b.row(0); }
+Vector Distance::Manhattan(const Vector &a, [[maybe_unused]] const Matrix &b) { return a; }

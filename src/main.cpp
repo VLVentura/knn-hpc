@@ -1,10 +1,10 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
 #include <CLI/CLI.hpp>
-#include <Eigen/Core>
 #include <cstdlib>
 #include <fstream>
 #include <map>
@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "core/distance.h"
+#include "core/utils.h"
 #include "knn/classifier.h"
 
 std::vector<std::string> SplitString(const std::string &str, char delimiter) {
@@ -27,13 +28,13 @@ std::vector<std::string> SplitString(const std::string &str, char delimiter) {
   return tokens;
 }
 
-Eigen::MatrixXf LoadFeatures(const std::string &filename) {
+Matrix LoadFeatures(const std::string &filename) {
   std::ifstream features{filename};
 
   bool firstLine{true};
   std::string line;
 
-  std::vector<Eigen::RowVectorXf> rows;
+  std::vector<Vector> rows;
   while (std::getline(features, line)) {
     if (firstLine) {
       firstLine = false;
@@ -42,20 +43,18 @@ Eigen::MatrixXf LoadFeatures(const std::string &filename) {
 
     const auto &tokens = SplitString(line, ',');
 
-    Eigen::RowVectorXf row{tokens.size()};
+    Vector row(tokens.size());
     for (size_t i{0}; i < tokens.size(); ++i) {
-      const auto &idx = static_cast<Eigen::Index>(i);
-      row(idx) = std::stof(tokens[i]);
+      row[i] = std::stof(tokens[i]);
     }
 
     rows.emplace_back(row);
   }
   features.close();
 
-  Eigen::MatrixXf data{rows.size(), rows[0].size()};
-  for (size_t i{0}; i < rows.size(); ++i) {
-    const auto &idx = static_cast<Eigen::Index>(i);
-    data.row(idx) = rows[i];
+  Matrix data;
+  for (const auto &row : rows) {
+    data.emplace_back(row);
   }
   return data;
 }
