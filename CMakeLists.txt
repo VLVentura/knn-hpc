@@ -24,8 +24,8 @@ project(
 )
 
 # Optimize code for process architecture
-include(cmake/OptimizeForArchitecture.cmake)
-OptimizeForArchitecture()
+# include(cmake/OptimizeForArchitecture.cmake)
+# OptimizeForArchitecture()
 
 # Setup project configurations
 include(cmake/PreventInSourceBuilds.cmake)
