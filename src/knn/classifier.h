@@ -2,14 +2,18 @@
 #define KNN_CLASSIFIER_H
 
 #include <Eigen/Core>
+#include <string>
 #include <vector>
 
-#include "core/distance.h"
+#include "distance.h"
 
 struct KNeighborsClassifierCreateConfig {
   int K{3};  // NOLINT
   DistanceType distanceType{DistanceType::kEuclidian};
   int jobs{1};
+  int startLine{0};
+  int endLine{0};
+  std::string outputFile;
 };
 
 class KNeighborsClassifier {
@@ -18,7 +22,7 @@ public:
   KNeighborsClassifier();
 
   void Fit(const Eigen::MatrixXf &x, const std::vector<int> &y);
-  std::vector<int> Predict(const Eigen::MatrixXf &predict);
+  void Predict(const Eigen::MatrixXf &predict);
 
 private:
   Eigen::VectorXf FindNeighbors(const Eigen::RowVectorXf &point);
@@ -26,6 +30,10 @@ private:
   int K_;  // NOLINT
   int jobs_;
   DistanceType distanceType_;
+  int startLine_;
+  int endLine_;
+  std::string outputFile_;
+
   Eigen::MatrixXf x_;
   std::vector<int> y_;
 };
