@@ -3,6 +3,7 @@ include(cmake/CPM.cmake)
 # Done as a function so that updates to variables like CMAKE_CXX_FLAGS don't
 # propagate out to other targets
 function(setup_dependencies)
+  cmake_policy(SET CMP0169 OLD)
 
   CPMAddPackage("gh:fmtlib/fmt#11.0.1")
 
@@ -28,5 +29,12 @@ function(setup_dependencies)
   CPMAddPackage("gh:CLIUtils/CLI11@2.4.2")
 
   CPMAddPackage("gh:catchorg/Catch2@3.3.2")
+
+  find_package(OpenMP REQUIRED)
+  message(STATUS "OpenMP Version: ${OpenMP_CXX_VERSION}")
+
+  find_package(MPI REQUIRED)
+  message(STATUS "MPI C++ Compiler: ${MPI_CXX_COMPILER}")
+  message(STATUS "MPI Executable: ${MPIEXEC_EXECUTABLE}")
 
 endfunction()

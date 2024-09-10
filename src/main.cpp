@@ -1,88 +1,183 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
+#include <mpi/mpi.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Core>
+#include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
+#include <ios>
 #include <map>
-#include <sstream>
 #include <string>
 #include <vector>
 
-#include "core/distance.h"
+#include "core/dataset.h"
+#include "core/message.h"
+#include "core/strings.h"
 #include "knn/classifier.h"
+#include "knn/distance.h"
 
-std::vector<std::string> SplitString(const std::string &str, char delimiter) {
-  std::vector<std::string> tokens;
-  std::string token;
-  std::stringstream ss{str};
+struct RunConfig {
+  ComputeRange range;
+  int K;  // NOLINT
+  int jobs;
+  DistanceType distance;
+  std::string dataset;
+  int rank;
+  int mpiSize;
+};
 
-  while (std::getline(ss, token, delimiter)) {
-    tokens.push_back(token);
+void Run(const RunConfig &runConfig) {
+  const char *const EnableVerbose = getenv("ENABLE_VERBOSE");  // NOLINT
+
+  Dataset train{runConfig.dataset};
+  Dataset test{runConfig.dataset, true};
+
+  const auto &range = runConfig.range;
+
+  KNeighborsClassifierCreateConfig config{};
+  config.K = runConfig.K;  // NOLINT
+  config.distanceType = runConfig.distance;
+  config.jobs = runConfig.jobs;
+  config.startLine = range.startLine;
+  config.endLine = range.endLine;
+  config.outputFile = fmt::format("process_{}.txt", runConfig.rank);
+
+  KNeighborsClassifier knn{config};
+  knn.Fit(train.X(), train.Y());
+
+  const spdlog::stopwatch sw;
+  knn.Predict(test.X());
+
+  bool dummy = true;
+  if (runConfig.rank != 0) {
+    MPI_Send(&dummy, 1, MPI_INT8_T, 0, 0, MPI_COMM_WORLD);
   }
+  if (runConfig.rank == 0) {
+    if (runConfig.mpiSize > 1) {
+      MPI_Status status;
+      MPI_Recv(&dummy, runConfig.mpiSize, MPI_INT8_T, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+    }
 
-  return tokens;
+    std::vector<int> predict(static_cast<size_t>(range.totalLines));
+    for (int i = 0; i < runConfig.mpiSize; ++i) {
+      std::fstream file{fmt::format("process_{}.txt", i), std::ios_base::in};
+
+      std::string line;
+      file >> line;
+      const auto &splitted = StringsUtils::Split(line, ',');
+      size_t startLine = std::stoul(splitted[0]);
+      size_t endLine = std::stoul(splitted[1]);
+
+      for (size_t j = startLine; j < endLine; ++j) {
+        file >> line;
+        predict[j] = std::stoi(line);
+      }
+
+      file.close();
+    }
+
+    const auto &elapsed = sw.elapsed();
+
+    size_t right{0};
+    for (size_t i = 0; i < predict.size(); ++i) {
+      right = (predict[i] == test.Y()[i]) ? right + 1 : right;
+    }
+
+    const float acc = static_cast<float>(right) / static_cast<float>(predict.size());
+    if (EnableVerbose != nullptr) {
+      spdlog::info("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
+    } else {
+      fmt::println("{:.2f},{}", acc, elapsed.count());
+    }
+  }
 }
 
-Eigen::MatrixXf LoadFeatures(const std::string &filename) {
-  std::ifstream features{filename};
+ComputeRange GetRank0Range(const std::string &dataset, int mpiSize) {
+  const char *const EnableVerbose = getenv("ENABLE_VERBOSE");  // NOLINT
+  std::vector<ComputeRange> messages(static_cast<size_t>(mpiSize), ComputeRange{});
 
-  bool firstLine{true};
-  std::string line;
+  const std::string &filename = fmt::format("{}/X_test.csv", dataset);
+  const int totalLines = [&filename]() {
+    std::ifstream file{filename};
 
-  std::vector<Eigen::RowVectorXf> rows;
-  while (std::getline(features, line)) {
-    if (firstLine) {
-      firstLine = false;
-      continue;
+    std::string line;
+    int count{0};
+
+    while (std::getline(file, line)) {
+      count++;
     }
 
-    const auto &tokens = SplitString(line, ',');
+    // Ignore first line (header)
+    return count - 1;
+  }();
+  const int linesPerProcess = static_cast<int>(std::floor(totalLines / mpiSize));
 
-    Eigen::RowVectorXf row{tokens.size()};
-    for (size_t i{0}; i < tokens.size(); ++i) {
-      const auto &idx = static_cast<Eigen::Index>(i);
-      row(idx) = std::stof(tokens[i]);
+  if (EnableVerbose != nullptr) {
+    spdlog::info("Lines/Process: {} | Total Lines: {}", linesPerProcess, totalLines);
+  }
+
+  int process{0};
+  int startLine{0};
+  int endLine{0};
+  while (endLine < totalLines) {
+    endLine = startLine + linesPerProcess;
+
+    if (process == mpiSize - 1) {
+      endLine += totalLines - endLine;
     }
 
-    rows.emplace_back(row);
-  }
-  features.close();
+    const auto i = static_cast<size_t>(process);
+    messages[i] = {startLine, endLine, totalLines};
 
-  Eigen::MatrixXf data{rows.size(), rows[0].size()};
-  for (size_t i{0}; i < rows.size(); ++i) {
-    const auto &idx = static_cast<Eigen::Index>(i);
-    data.row(idx) = rows[i];
+    if (EnableVerbose != nullptr) {
+      spdlog::info("[process = {}] {} - {} ({} lines)", process, startLine, endLine, endLine - startLine);
+    }
+
+    process++;
+    startLine = process * linesPerProcess + 1;
   }
-  return data;
+
+  for (int i = 1; i < mpiSize; ++i) {
+    MPI_Send(messages[static_cast<size_t>(i)].Serialize(), sizeof(ComputeRange), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+  }
+
+  return messages[0];
 }
 
-std::vector<int> LoadTarget(const std::string &filename) {
-  std::vector<int> data;
-  std::ifstream features{filename};
+ComputeRange GetGeneralRange(int mpiRank) {
+  const char *const EnableVerbose = getenv("ENABLE_VERBOSE");  // NOLINT
 
-  bool firstLine{true};
-  std::string line;
+  MPI_Status status;
+  uint8_t buffer[sizeof(ComputeRange)];
+  MPI_Recv(&buffer, sizeof(ComputeRange), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
 
-  while (std::getline(features, line)) {
-    if (firstLine) {
-      firstLine = false;
-      continue;
-    }
+  ComputeRange data;
+  data.ParseFromBuffer(buffer);  // NOLINT
 
-    const int value = std::stoi(line);
-    data.emplace_back(value);
+  if (EnableVerbose != nullptr) {
+    spdlog::info("[On process = {}]: {} - {}", mpiRank, data.startLine, data.endLine);
   }
 
-  features.close();
   return data;
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char **argv) {
+  if (int ret = MPI_Init(&argc, &argv); ret != MPI_SUCCESS) {
+    spdlog::error("Error when tried to init MPI. Aborting...");
+    MPI_Abort(MPI_COMM_WORLD, ret);
+  }
+
+  int mpiRank{0};
+  int mpiSize{0};
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+
   CLI::App app{"KNN Algorithm implemented with HPC techniques."};
   argv = app.ensure_utf8(argv);
 
@@ -107,39 +202,50 @@ int main(int argc, char **argv) {
   bool verbose{false};
   app.add_flag("-v,--verbose", verbose);
 
+  bool printCalc{false};
+  app.add_flag("-c,--print_calc", printCalc, "Needs to be used with -v flag.");
+
   CLI11_PARSE(app, argc, argv);
 
   if (verbose) {
     setenv("ENABLE_VERBOSE", "true", 0);  // NOLINT
   }
+  if (verbose && printCalc) {
+    setenv("ENABLE_PRINT_CALC", "true", 0);  // NOLINT
+  }
+  if (verbose && mpiRank == 0) {
+    int mpiVersion{0};
+    int mpiSubVersion{0};
+    MPI_Get_version(&mpiVersion, &mpiSubVersion);
+    spdlog::info("MPI Version {}.{}", mpiVersion, mpiSubVersion);
 
-  const auto &xTrain = LoadFeatures(fmt::format("{}/X_train.csv", dataset));
-  const auto &yTtrain = LoadTarget(fmt::format("{}/Y_train.csv", dataset));
-  const auto &x = LoadFeatures(fmt::format("{}/X_test.csv", dataset));
-  const auto &y = LoadTarget(fmt::format("{}/Y_test.csv", dataset));
+    int libVersion{0};
+    std::string mpiLibVersion(MPI_MAX_PROCESSOR_NAME, '\0');
+    MPI_Get_library_version(mpiLibVersion.data(), &libVersion);  // NOLINT
+    mpiLibVersion.resize(static_cast<size_t>(libVersion));
+    mpiLibVersion = StringsUtils::Split(mpiLibVersion, ',')[0];
+    spdlog::info("MPI Library Version: {}", mpiLibVersion);
 
-  KNeighborsClassifierCreateConfig config{};
-  config.K = K;  // NOLINT
-  config.distanceType = distance;
+    int strLen{0};
+    std::string machine(MPI_MAX_PROCESSOR_NAME, '\0');
+    MPI_Get_processor_name(machine.data(), &strLen);
+    machine.resize(static_cast<size_t>(strLen));
+    spdlog::info("MPI Machine Name: {}", machine);
+
+    spdlog::info("MPI Size: {}", mpiSize);
+  }
+
+  RunConfig config{};
+  config.K = K;
   config.jobs = jobs;
+  config.dataset = dataset;
+  config.distance = distance;
+  config.rank = mpiRank;
+  config.mpiSize = mpiSize;
+  config.range = (mpiRank == 0) ? GetRank0Range(dataset, mpiSize) : GetGeneralRange(mpiRank);
 
-  const spdlog::stopwatch sw;
-  KNeighborsClassifier knn{config};
-  knn.Fit(xTrain, yTtrain);
-  const auto &predict = knn.Predict(x);
-  const auto &elapsed = sw.elapsed();
+  Run(config);
 
-  size_t right{0};
-  for (size_t i = 0; i < predict.size(); ++i) {
-    right = (predict[i] == y[i]) ? right + 1 : right;
-  }
-
-  const float acc = static_cast<float>(right) / static_cast<float>(predict.size());
-  if (verbose) {
-    spdlog::info("Accuracy: {:.2f}% | Time: {}", acc * 100.F, elapsed.count());  // NOLINT
-  } else {
-    fmt::println("{:.2f},{}", acc, elapsed.count());
-  }
-
+  MPI_Finalize();
   return EXIT_SUCCESS;
 }
