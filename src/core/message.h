@@ -12,8 +12,8 @@ struct ComputeRange {
 
   [[nodiscard]] uint8_t* Serialize() { return reinterpret_cast<uint8_t*>(this); }  // NOLINT
 
-  void ParseFromBuffer(uint8_t* buffer) {
-    auto* data = reinterpret_cast<ComputeRange*>(buffer);  // NOLINT
+  void ParseFromBuffer(uint8_t* buffer) {                        // NOLINT
+    const auto* data = reinterpret_cast<ComputeRange*>(buffer);  // NOLINT
     startLine = data->startLine;
     endLine = data->endLine;
     totalLines = data->totalLines;

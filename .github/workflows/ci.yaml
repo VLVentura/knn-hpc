@@ -15,7 +15,7 @@ jobs:
           sudo apt update
           DEBIAN_FRONTEND=noninteractive sudo apt install -y --no-install-recommends        \
             software-properties-common build-essential autoconf libtool pkg-config wget tar \
-            ccache ninja-build gcovr python3 python3-pip
+            openmpi-common libopenmpi-dev ccache ninja-build gcovr python3 python3-pip
 
       - name: Install LLVM
         run: |
@@ -60,19 +60,21 @@ jobs:
         with:
           path: |
             ~/.ccache
+            ~/.cache/CPM
           key: knn-hpc-cache
 
       - name: Build
         run: |
-          cmake -S . -B build/ -G Ninja -DCMAKE_C_COMPILER=clang      \
-                                        -DCMAKE_CXX_COMPILER=clang++  \
-                                        -DCMAKE_BUILD_TYPE=Debug      \
+          export CPM_SOURCE_CACHE=~/.cache/CPM
+          cmake -S . -B build/ -G Ninja -DCMAKE_C_COMPILER=gcc        \
+                                        -DCMAKE_CXX_COMPILER=g++      \
+                                        -DCMAKE_BUILD_TYPE=Release    \
                                         -DENABLE_SANITIZER_MEMORY=OFF \
                                         -DENABLE_DEVELOPER_MODE=ON    \
                                         -DENABLE_TESTING=ON
-          cmake --build build/ --config Debug --target all -j $(nproc)
+          cmake --build build/ --config Release --target all -j $(nproc)
 
       - name: Run tests
         working-directory: build
         run: |
-          ctest -T test -C Debug -j $(nproc)
+          ctest -T test -C Release -j $(nproc)

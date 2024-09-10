@@ -34,8 +34,8 @@ struct RunConfig {
 void Run(const RunConfig &runConfig) {
   const char *const EnableVerbose = getenv("ENABLE_VERBOSE");  // NOLINT
 
-  Dataset train{runConfig.dataset};
-  Dataset test{runConfig.dataset, true};
+  const Dataset train{runConfig.dataset};
+  const Dataset test{runConfig.dataset, true};
 
   const auto &range = runConfig.range;
 
@@ -55,12 +55,12 @@ void Run(const RunConfig &runConfig) {
 
   bool dummy = true;
   if (runConfig.rank != 0) {
-    MPI_Send(&dummy, 1, MPI_INT8_T, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(&dummy, 1, MPI_CXX_BOOL, 0, 0, MPI_COMM_WORLD);
   }
   if (runConfig.rank == 0) {
     if (runConfig.mpiSize > 1) {
       MPI_Status status;
-      MPI_Recv(&dummy, runConfig.mpiSize, MPI_INT8_T, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      MPI_Recv(&dummy, runConfig.mpiSize, MPI_CXX_BOOL, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
     }
 
     std::vector<int> predict(static_cast<size_t>(range.totalLines));
@@ -70,8 +70,8 @@ void Run(const RunConfig &runConfig) {
       std::string line;
       file >> line;
       const auto &splitted = StringsUtils::Split(line, ',');
-      size_t startLine = std::stoul(splitted[0]);
-      size_t endLine = std::stoul(splitted[1]);
+      const size_t startLine = std::stoul(splitted[0]);
+      const size_t endLine = std::stoul(splitted[1]);
 
       for (size_t j = startLine; j < endLine; ++j) {
         file >> line;
@@ -168,7 +168,7 @@ ComputeRange GetGeneralRange(int mpiRank) {
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char **argv) {
-  if (int ret = MPI_Init(&argc, &argv); ret != MPI_SUCCESS) {
+  if (const int ret = MPI_Init(&argc, &argv); ret != MPI_SUCCESS) {
     spdlog::error("Error when tried to init MPI. Aborting...");
     MPI_Abort(MPI_COMM_WORLD, ret);
   }
